@@ -1,35 +1,27 @@
 package ait.socket.client;
-
+import ait.socket.client.task.RecieveHandler;
+import ait.socket.client.task.SendHandler;
 import java.io.*;
 import java.net.Socket;
-import java.util.Scanner;
 
 public class ClientSocketAppl {
-    public static void main(String[] args) {
-        String serverIp ="127.0.0.1"; //localhost
+    public static void main(String[] args) throws InterruptedException {
+        String serverIp = "127.0.0.1"; //localhost
         int serverPort = 9000;
-        try (Socket socket = new Socket(serverIp, serverPort);)
-         {
-             InputStream inputStream = socket.getInputStream();
-             OutputStream outputStream = socket.getOutputStream();
-             PrintWriter socketWriter = new PrintWriter(outputStream);
-             BufferedReader socketReader = new BufferedReader(new InputStreamReader(inputStream));
-             Scanner consoleScaner = new Scanner(System.in);
-             System.out.println("Enter your message or 'exit' to quit ");
-             String message = consoleScaner.nextLine();
-             while (!"exit".equalsIgnoreCase(message)){
-                 socketWriter.println(message);
-                 socketWriter.flush();
-                 String response =  socketReader.readLine();
-                 System.out.println(response);
-                 System.out.println("Enter your message or 'exit' to quit ");
-                 message = consoleScaner.nextLine();
 
-             }
+        try (Socket socket = new Socket(serverIp, serverPort)) {
+            Thread sendThread = new Thread(new SendHandler(socket));
+            Thread receiveThread = new Thread(new RecieveHandler(socket));
+            receiveThread.setDaemon(true);
+            sendThread.start();
+            receiveThread.start();
+            sendThread.join();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            System.err.println("Error connecting to server or I/O error: " + e.getMessage());
+        } finally {
+            System.out.println("Client application finished.");
         }
-
     }
 
 }
+
