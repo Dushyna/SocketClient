@@ -1,35 +1,30 @@
 package ait.socket.client;
 
-import java.io.*;
+import ait.socket.client.task.MessageReceiver;
+import ait.socket.client.task.MessageSender;
+
+import java.io.IOException;
 import java.net.Socket;
-import java.util.Scanner;
 
 public class ClientSocketAppl {
     public static void main(String[] args) {
-        String serverIp ="127.0.0.1"; //localhost
-        int serverPort = 9000;
-        try (Socket socket = new Socket(serverIp, serverPort);)
-         {
-             InputStream inputStream = socket.getInputStream();
-             OutputStream outputStream = socket.getOutputStream();
-             PrintWriter socketWriter = new PrintWriter(outputStream);
-             BufferedReader socketReader = new BufferedReader(new InputStreamReader(inputStream));
-             Scanner consoleScaner = new Scanner(System.in);
-             System.out.println("Enter your message or 'exit' to quit ");
-             String message = consoleScaner.nextLine();
-             while (!"exit".equalsIgnoreCase(message)){
-                 socketWriter.println(message);
-                 socketWriter.flush();
-                 String response =  socketReader.readLine();
-                 System.out.println(response);
-                 System.out.println("Enter your message or 'exit' to quit ");
-                 message = consoleScaner.nextLine();
-
-             }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if (args.length == 1) {
+            args = new String[]{args[0], "9000"};
         }
-
+        if (args.length == 0) {
+            args = new String[]{"127.0.0.1", "9000"};
+        }
+        String serverIp = args[0];
+        int serverPort = Integer.parseInt(args[1]);
+        try {
+            Socket socket = new Socket(serverIp, serverPort);
+            Thread receiver = new Thread(new MessageReceiver(socket));
+            receiver.setDaemon(true);
+            receiver.start();
+            Thread sender = new Thread(new MessageSender(socket));
+            sender.start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
-
 }
